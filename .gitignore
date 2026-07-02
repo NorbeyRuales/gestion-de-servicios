@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Variables locales y credenciales
+.env
+.env.*
+!.env.example
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+*.log
