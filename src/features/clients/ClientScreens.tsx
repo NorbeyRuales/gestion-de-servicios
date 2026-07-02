@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNo
 import { z } from "zod";
 import {
   AlertCircle, ArrowLeft, Building2, CheckCircle2, ChevronRight, Edit3,
-  Loader2, Mail, MapPin, Phone, Plus, Search, Trash2, User, X,
+  Loader2, Mail, MapPin, Phone, Plus, Search, Trash2, User,
 } from "lucide-react";
+import { StyledModal as Modal } from "../../app/components/ui/styled-modal";
 import { supabase } from "../../lib/supabase";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 import { requestControlledDeletion } from "../../lib/adminDeletion";
@@ -119,21 +120,6 @@ function Feedback({ error, success }: { error?: string; success?: string }) {
 
 function LoadingState() {
   return <div className="py-20 grid place-items-center text-muted-foreground"><div className="flex items-center gap-2"><Loader2 size={20} className="animate-spin" />Cargando información…</div></div>;
-}
-
-function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [onClose]);
-
-  return <div className="fixed inset-0 z-50 bg-slate-950/45 p-4 grid place-items-center" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-    <div role="dialog" aria-modal="true" className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-card shadow-2xl border border-border">
-      <div className="sticky top-0 bg-card z-10 flex items-center justify-between px-5 py-4 border-b border-border"><h2 className="font-bold text-lg">{title}</h2><button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-md hover:bg-muted" aria-label="Cerrar"><X size={18} /></button></div>
-      {children}
-    </div>
-  </div>;
 }
 
 function ClientForm({ initial, saving, onCancel, onSave }: { initial?: ClientRecord; saving: boolean; onCancel: () => void; onSave: (value: ClientFormValue) => Promise<void> }) {

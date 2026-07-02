@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { requestDeletionReason } from "../app/components/ui/destructive-dialog";
 
 export type DeletableEntity = "client" | "branch" | "area" | "asset" | "service_type" | "work_order";
 
@@ -10,10 +11,8 @@ function messageFrom(error: unknown) {
 }
 
 export async function requestControlledDeletion(entity: DeletableEntity, id: string, label: string) {
-  const reason = window.prompt(`Motivo para eliminar "${label}" (mínimo 5 caracteres):`);
+  const reason = await requestDeletionReason(label);
   if (reason === null) return false;
-  if (reason.trim().length < 5) throw new Error("Debes escribir un motivo de al menos 5 caracteres.");
-  if (!window.confirm(`¿Eliminar definitivamente "${label}"? Esta acción no se puede deshacer.`)) return false;
 
   const { error } = await supabase.rpc("delete_unused_record", {
     p_entity: entity,

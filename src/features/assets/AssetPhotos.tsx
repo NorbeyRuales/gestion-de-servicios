@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AlertCircle, Camera, CheckCircle2, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 import { PhotoCaptionEditor } from "../../components/PhotoCaptionEditor";
 
 interface AssetPhoto {
@@ -128,6 +129,7 @@ export function AssetPhotos({ assetId, assetName, disabled = false }: { assetId:
   };
 
   const remove = async (photo: PhotoWithUrl) => {
+    if (!await confirmDestructiveAction({ title: "Eliminar foto del equipo", description: "La imagen se eliminará definitivamente del historial del equipo.", confirmLabel: "Sí, eliminar" })) return;
     setError("");
     setSuccess("");
     setDeletingId(photo.id);

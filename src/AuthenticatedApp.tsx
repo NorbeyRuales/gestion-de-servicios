@@ -2,6 +2,7 @@ import App from "./app/App";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { AuthScreen } from "./auth/AuthScreen";
 import { Loader2 } from "lucide-react";
+import { DestructiveDialogHost } from "./app/components/ui/destructive-dialog";
 
 function AppGate() {
   const { session, profile, loading, passwordRecovery, signOut } = useAuth();
@@ -20,5 +21,5 @@ function AppGate() {
 }
 
 export default function AuthenticatedApp() {
-  return <AuthProvider><AppGate /></AuthProvider>;
+  return <AuthProvider><AppGate /><DestructiveDialogHost /></AuthProvider>;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AlertCircle, Camera, CheckCircle2, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 import { PhotoCaptionEditor } from "../../components/PhotoCaptionEditor";
 
 type PhotoType = "before" | "during" | "after" | "evidence";
@@ -140,6 +141,7 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
   };
 
   const remove = async (photo: PhotoWithUrl) => {
+    if (!await confirmDestructiveAction({ title: "Eliminar foto de la orden", description: "La imagen se eliminará definitivamente de la evidencia de esta orden.", confirmLabel: "Sí, eliminar" })) return;
     setError("");
     setSuccess("");
     setDeletingId(photo.id);

@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, Edit3, KeyRound, Loader2, ShieldCheck, Trash
 import { supabase } from "../../lib/supabase";
 import { CreateUserForm } from "./CreateUserForm";
 import { deleteManagedUser } from "./userAdminApi";
+import { confirmDestructiveAction, requestDeletionReason } from "../../app/components/ui/destructive-dialog";
 
 type UserRole = "admin" | "technician" | "billing";
 interface UserProfile { id: string; full_name: string; email: string; role: UserRole; is_active: boolean; created_at: string }
@@ -56,7 +57,7 @@ export function UsersManagement({ currentUserId }: { currentUserId: string }) {
   };
 
   const sendPasswordReset = async (user: UserProfile) => {
-    if (!window.confirm(`¿Enviar un enlace de restablecimiento a ${user.email}?`)) return;
+    if (!await confirmDestructiveAction({ title: "Enviar restablecimiento", description: `Se enviará un enlace para cambiar la contraseña a ${user.email}.`, confirmLabel: "Sí, enviar" })) return;
     setBusyId(user.id); setError(""); setSuccess("");
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin });
     setBusyId(null);
@@ -66,13 +67,11 @@ export function UsersManagement({ currentUserId }: { currentUserId: string }) {
 
   const removeUser = async (user: UserProfile) => {
     if (user.is_active) return setError("Desactiva el usuario antes de eliminarlo.");
-    const reason = window.prompt(`Motivo para eliminar a ${user.full_name} (mínimo 5 caracteres):`);
+    const reason = await requestDeletionReason(user.full_name);
     if (reason === null) return;
-    if (reason.trim().length < 5) return setError("Escribe un motivo de al menos 5 caracteres.");
-    if (!window.confirm(`¿Eliminar definitivamente la cuenta de ${user.full_name}?`)) return;
     setBusyId(user.id); setError(""); setSuccess("");
     try {
-      await deleteManagedUser(user.id, reason.trim());
+      await deleteManagedUser(user.id, reason);
       setSuccess("Usuario eliminado correctamente.");
       await load();
     } catch (deleteError) {

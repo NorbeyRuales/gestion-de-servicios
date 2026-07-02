@@ -4,6 +4,7 @@ import {
   createPaymentProof, deletePaymentProof, getPaymentProofUrl, replacePaymentProof,
   type PaymentProof,
 } from "./paymentProofs";
+import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 
 interface PaymentProofControlProps {
   invoiceId: string;
@@ -53,7 +54,7 @@ export function PaymentProofControl({ invoiceId, paymentId, proofs, onChanged, o
   };
 
   const remove = async () => {
-    if (!proof || !window.confirm("¿Eliminar este comprobante de pago?")) return;
+    if (!proof || !await confirmDestructiveAction({ title: "Eliminar comprobante", description: "El archivo adjunto se eliminará del pago. Esta acción no se puede deshacer.", confirmLabel: "Sí, eliminar" })) return;
     setBusy(true);
     try {
       await deletePaymentProof(proof);

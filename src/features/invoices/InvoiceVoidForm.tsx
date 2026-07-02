@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 
 function messageFrom(error: unknown) {
   if (error && typeof error === "object" && "message" in error && typeof error.message === "string") return error.message.replace(/^.*?: /, "");
@@ -20,7 +21,7 @@ export function InvoiceVoidForm({ invoiceId, invoiceNumber, onCancel, onVoided }
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (reason.trim().length < 5) return setError("Escribe un motivo de al menos 5 caracteres.");
-    if (!window.confirm(`¿Anular la factura ${invoiceNumber}? Sus órdenes volverán a estar disponibles para facturar.`)) return;
+    if (!await confirmDestructiveAction({ title: `Anular factura ${invoiceNumber}`, description: "La factura se conservará como anulada y sus órdenes volverán a estar disponibles para facturar.", confirmLabel: "Sí, anular" })) return;
     setBusy(true);
     setError("");
     const { error: voidError } = await supabase.rpc("void_invoice", { p_invoice_id: invoiceId, p_reason: reason.trim() });

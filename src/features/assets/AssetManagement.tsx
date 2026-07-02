@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { z } from "zod";
-import { AlertCircle, Camera, CheckCircle2, Cpu, Edit3, History, Layers, Loader2, Package, Plus, Search, Trash2, X } from "lucide-react";
+import { AlertCircle, Camera, CheckCircle2, Cpu, Edit3, History, Layers, Loader2, Package, Plus, Search, Trash2 } from "lucide-react";
+import { StyledModal as Modal } from "../../app/components/ui/styled-modal";
 import { supabase } from "../../lib/supabase";
 import { requestControlledDeletion } from "../../lib/adminDeletion";
 import { TechnicalHistory } from "../work-orders/TechnicalHistory";
@@ -90,15 +91,6 @@ function messageFrom(error: unknown) {
   if (message.includes("areas_branch_id_name_key")) return "Ya existe un área con ese nombre en esta sede.";
   if (message.includes("assets_internal_code_key")) return "Ese código interno ya está asignado a otro equipo.";
   return message || "No fue posible completar la operación.";
-}
-
-function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.addEventListener("keydown", close);
-    return () => document.removeEventListener("keydown", close);
-  }, [onClose]);
-  return <div className="fixed inset-0 z-50 bg-slate-950/45 p-4 grid place-items-center" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><div role="dialog" aria-modal="true" className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl bg-card border border-border shadow-2xl"><div className="sticky top-0 z-10 bg-card flex items-center justify-between px-5 py-4 border-b border-border"><h2 className="font-bold text-lg">{title}</h2><button onClick={onClose} aria-label="Cerrar" className="h-8 w-8 grid place-items-center rounded-md hover:bg-muted"><X size={18} /></button></div>{children}</div></div>;
 }
 
 function Feedback({ error, success }: { error: string; success: string }) {

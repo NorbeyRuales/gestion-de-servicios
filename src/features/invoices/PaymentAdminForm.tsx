@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AlertCircle, Loader2, Save, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import type { PaymentProof } from "./paymentProofs";
+import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 
 type PaymentMethod = "cash" | "bank_transfer" | "nequi" | "bancolombia" | "daviplata" | "other";
 interface PaymentAdminData {
@@ -70,11 +71,10 @@ export function PaymentAdminForm({ payment, maxAmount, branches, onCancel, onSav
   };
 
   const remove = async () => {
-    if (reason.trim().length < 5) return setError("Escribe el motivo de la eliminación (mínimo 5 caracteres).");
-    if (!window.confirm("¿Eliminar definitivamente este pago? El saldo de la factura será recalculado.")) return;
+    if (!await confirmDestructiveAction({ title: "Eliminar pago", description: "El pago se eliminará definitivamente y el saldo de la factura será recalculado.", confirmLabel: "Sí, eliminar" })) return;
     setBusy("delete");
     setError("");
-    const { error: deleteError } = await supabase.rpc("delete_payment_admin", { p_payment_id: payment.id, p_reason: reason.trim() });
+    const { error: deleteError } = await supabase.rpc("delete_payment_admin", { p_payment_id: payment.id, p_reason: reason.trim() || "Sin motivo especificado" });
     if (deleteError) {
       setError(messageFrom(deleteError));
       setBusy(null);
