@@ -45,7 +45,7 @@ npx supabase functions deploy admin-create-user
 
 El registro público debe permanecer desactivado en **Authentication > Providers > Email**. Crea el primer usuario desde el panel de Supabase; el trigger lo convierte en administrador inicial. Los usuarios posteriores se crean desde Administración mediante la Edge Function `admin-create-user`.
 
-Configura en Supabase las URL permitidas de producción para inicio de sesión y recuperación de contraseña. No publiques `SUPABASE_DB_URL` ni `SUPABASE_SERVICE_ROLE_KEY`.
+Configura en **Supabase > Authentication > URL Configuration** la URL pública como **Site URL** y agrégala también a **Redirect URLs**. Esa misma URL debe configurarse como `VITE_APP_URL` en producción para que los correos de recuperación nunca apunten a localhost. No publiques `SUPABASE_DB_URL` ni `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Despliegue
 
@@ -56,7 +56,7 @@ npm ci
 npm run check
 ```
 
-`vercel.json` incluye fallback para la SPA, caché de assets y cabeceras de seguridad. En el proveedor de despliegue configura solamente `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` para el frontend.
+`vercel.json` incluye fallback para la SPA, caché de assets y cabeceras de seguridad. En el proveedor de despliegue configura `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` y `VITE_APP_URL` para el frontend.
 
 ## Estructura
 

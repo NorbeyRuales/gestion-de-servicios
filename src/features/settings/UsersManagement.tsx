@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Edit3, KeyRound, Loader2, ShieldCheck, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { authRedirectUrl, supabase } from "../../lib/supabase";
 import { CreateUserForm } from "./CreateUserForm";
 import { deleteManagedUser } from "./userAdminApi";
 import { confirmDestructiveAction, requestDeletionReason } from "../../app/components/ui/destructive-dialog";
@@ -59,7 +59,7 @@ export function UsersManagement({ currentUserId }: { currentUserId: string }) {
   const sendPasswordReset = async (user: UserProfile) => {
     if (!await confirmDestructiveAction({ title: "Enviar restablecimiento", description: `Se enviará un enlace para cambiar la contraseña a ${user.email}.`, confirmLabel: "Sí, enviar" })) return;
     setBusyId(user.id); setError(""); setSuccess("");
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: window.location.origin });
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: authRedirectUrl });
     setBusyId(null);
     if (resetError) return setError(messageFrom(resetError));
     setSuccess(`Enlace de restablecimiento enviado a ${user.email}.`);

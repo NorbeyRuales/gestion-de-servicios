@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2, LockKeyhole, Mail, Wrench } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { authRedirectUrl, supabase } from "../lib/supabase";
 
 type Mode = "login" | "recover" | "update";
 
@@ -32,7 +32,7 @@ export function AuthScreen({ recovery = false }: { recovery?: boolean }) {
         if (authError) throw authError;
       } else if (mode === "recover") {
         const { error: authError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+          redirectTo: authRedirectUrl,
         });
         if (authError) throw authError;
         setMessage("Te enviamos un enlace para restablecer la contraseña.");
