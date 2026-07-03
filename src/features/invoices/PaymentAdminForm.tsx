@@ -90,7 +90,7 @@ export function PaymentAdminForm({ payment, maxAmount, branches, onCancel, onSav
     {error && <div role="alert" className="mb-3 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700"><AlertCircle size={14} />{error}</div>}
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <label className="text-xs font-semibold">Fecha<input type="date" className={inputClass} value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
-      <label className="text-xs font-semibold">Valor<input type="number" min="1" max={maxAmount} className={inputClass} value={amount} onChange={(event) => setAmount(Number(event.target.value))} /></label>
+      <label className="text-xs font-semibold">Valor<input type="number" min="1" max={maxAmount} inputMode="numeric" placeholder="$ 0" className={inputClass} value={amount || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setAmount(Number(event.target.value))} /></label>
       <label className="text-xs font-semibold">Método<select className={inputClass} value={method} onChange={(event) => setMethod(event.target.value as PaymentMethod)}>{Object.entries(methodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label className="text-xs font-semibold">Sede<select className={inputClass} value={branchId} onChange={(event) => setBranchId(event.target.value)}><option value="">Sin sede</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
       <label className="text-xs font-semibold">Referencia<input className={inputClass} value={reference} onChange={(event) => setReference(event.target.value)} /></label>

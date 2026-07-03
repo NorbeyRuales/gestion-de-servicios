@@ -301,7 +301,7 @@ function PaymentForm({ invoice, balance, branches, onSaved, onCancel }: {
     {paymentError && <div role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-2.5 text-xs text-red-700">{paymentError}</div>}
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <label className="text-xs font-semibold">Fecha<input type="date" className={`${inputClass} mt-1`} value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} /></label>
-      <label className="text-xs font-semibold">Valor recibido<input type="number" min="1" max={balance} step="1" className={`${inputClass} mt-1`} value={amount} onChange={(event) => setAmount(Number(event.target.value))} /></label>
+      <label className="text-xs font-semibold">Valor recibido<input type="number" min="1" max={balance} step="1" inputMode="numeric" placeholder="$ 0" className={`${inputClass} mt-1`} value={amount || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setAmount(Number(event.target.value))} /></label>
       <label className="text-xs font-semibold">Método<select className={`${inputClass} mt-1`} value={method} onChange={(event) => setMethod(event.target.value as PaymentMethod)}>{Object.entries(paymentMethodLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label className="text-xs font-semibold">Sede donde se recibió<select className={`${inputClass} mt-1`} value={branchId} onChange={(event) => setBranchId(event.target.value)}><option value="">Sin sede específica</option>{branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select></label>
       <label className="text-xs font-semibold">Referencia<input className={`${inputClass} mt-1`} value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Número de transferencia…" /></label>
@@ -632,7 +632,7 @@ export function InvoicesScreen({ canAdminister = false }: { canAdminister?: bool
                       <h3 className="font-semibold text-sm">{order.reported_problem || order.work_performed || "Orden sin descripción"}</h3>
                       <p className="text-xs font-mono text-muted-foreground mt-0.5">{order.code}</p>
                     </div>
-                    <strong className="font-mono text-sm">{formatMoney(orderTotal(order))}</strong>
+                    <strong className="text-sm font-semibold tabular-nums">{formatMoney(orderTotal(order))}</strong>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><MapPin size={11} />{order.branches?.name || "Sin sede"}</span>
@@ -654,7 +654,7 @@ export function InvoicesScreen({ canAdminister = false }: { canAdminister?: bool
           </label>
           <div className="space-y-3">
             <label className="text-sm font-semibold block">Descuento
-              <input type="number" min="0" className={`${inputClass} mt-1.5`} value={discount} onChange={(event) => setDiscount(Number(event.target.value))} />
+              <input type="number" min="0" inputMode="numeric" placeholder="$ 0" className={`${inputClass} mt-1.5`} value={discount || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setDiscount(Number(event.target.value))} />
             </label>
             <div className="rounded-xl bg-[#1a3558] text-white p-4 space-y-2 text-sm">
               <p className="flex justify-between"><span>Materiales</span><strong>{formatMoney(activeTotals.materials)}</strong></p>
@@ -713,7 +713,7 @@ export function InvoicesScreen({ canAdminister = false }: { canAdminister?: bool
               <p className="text-xs text-muted-foreground mt-1">{invoice.invoice_work_orders.map((item) => item.work_orders?.code).filter(Boolean).join(", ") || (invoice.invoice_line_items.length > 0 ? "Factura manual" : "Sin órdenes")}</p>
             </div>
             <div className="text-right">
-              <strong className="font-mono text-lg">{formatMoney(Number(invoice.grand_total))}</strong>
+              <strong className="text-lg font-semibold tabular-nums">{formatMoney(Number(invoice.grand_total))}</strong>
               {balance > 0 && <p className="text-xs font-semibold text-red-600">Saldo: {formatMoney(balance)}</p>}
             </div>
           </div>
@@ -765,7 +765,7 @@ export function InvoicesScreen({ canAdminister = false }: { canAdminister?: bool
                     await load();
                   }}
                 /></div>
-                <div className="flex items-center justify-end gap-2"><strong className="font-mono text-green-700">+{formatMoney(Number(payment.amount))}</strong>{canAdminister && <button type="button" title="Corregir pago" onClick={() => setEditingPaymentId(isEditing ? null : payment.id)} className="grid h-7 w-7 place-items-center rounded border border-border bg-card text-blue-700"><Pencil size={13} /></button>}</div>
+                <div className="flex items-center justify-end gap-2"><strong className="font-semibold tabular-nums text-green-700">+{formatMoney(Number(payment.amount))}</strong>{canAdminister && <button type="button" title="Corregir pago" onClick={() => setEditingPaymentId(isEditing ? null : payment.id)} className="grid h-7 w-7 place-items-center rounded border border-border bg-card text-blue-700"><Pencil size={13} /></button>}</div>
               </div>{isEditing && <PaymentAdminForm payment={payment} maxAmount={balance + Number(payment.amount)} branches={invoiceBranches} onCancel={() => setEditingPaymentId(null)} onSaved={async (adminMessage) => { setEditingPaymentId(null); setError(""); setSuccess(adminMessage); await load(); }} />}
               </div>;
             })}</div>
