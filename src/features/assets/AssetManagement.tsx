@@ -73,6 +73,22 @@ const statusStyles: Record<AssetStatus, string> = {
   retired: "bg-slate-100 text-slate-600",
 };
 
+const restaurantEquipmentCategories = [
+  "Refrigeración",
+  "Cocción",
+  "Preparación de alimentos",
+  "Lavado y limpieza",
+  "Extracción y ventilación",
+  "Bebidas",
+  "Conservación caliente",
+  "Gas",
+  "Electricidad",
+  "Climatización",
+  "Pesaje",
+  "Seguridad",
+  "Mobiliario inoxidable",
+] as const;
+
 const inputClass = "mt-1.5 w-full rounded-lg border border-border bg-input-background px-3 py-2.5 text-sm outline-none focus:border-[#f97316] focus:ring-2 focus:ring-orange-100";
 
 function messageFrom(error: unknown) {
@@ -117,6 +133,7 @@ function AssetForm({ areas, initial, saving, onCancel, onSave }: { areas: AreaRe
     serial_number: initial?.serial_number ?? "", status: initial?.status ?? "operational",
     purchase_date: initial?.purchase_date ?? "", last_maintenance_date: initial?.last_maintenance_date ?? "", notes: initial?.notes ?? "",
   });
+  const [customCategory, setCustomCategory] = useState(Boolean(initial?.category && !restaurantEquipmentCategories.includes(initial.category as typeof restaurantEquipmentCategories[number])));
   const [error, setError] = useState("");
   const set = (key: keyof AssetValue, next: string) => setValue((current) => ({ ...current, [key]: next }));
   const submit = async (event: FormEvent) => {
@@ -128,7 +145,7 @@ function AssetForm({ areas, initial, saving, onCancel, onSave }: { areas: AreaRe
   return <form onSubmit={submit} className="p-5 space-y-4">{error && <Feedback error={error} success="" />}<div className="grid sm:grid-cols-2 gap-4">
     <label className="text-sm font-semibold">Código interno {initial ? "*" : "(opcional)"}<input required={Boolean(initial)} className={inputClass} value={value.internal_code} onChange={(event) => set("internal_code", event.target.value.toUpperCase())} placeholder={initial ? "Código del equipo" : "Se genera al guardar"} /><span className="mt-1 block text-xs font-normal text-muted-foreground">{initial ? "Puedes conservarlo o cambiarlo manualmente." : "Déjalo vacío para usar las primeras letras de la categoría y el siguiente consecutivo."}</span></label>
     <label className="text-sm font-semibold">Nombre *<input autoFocus required className={inputClass} value={value.name} onChange={(event) => set("name", event.target.value)} /></label>
-    <label className="text-sm font-semibold">Categoría *<input required className={inputClass} value={value.category} onChange={(event) => set("category", event.target.value)} placeholder="Freidora industrial" /></label>
+    <label className="text-sm font-semibold">Categoría *<select required className={inputClass} value={customCategory ? "other" : value.category} onChange={(event) => { const category = event.target.value; setCustomCategory(category === "other"); set("category", category === "other" ? "" : category); }}><option value="">Selecciona una categoría</option>{restaurantEquipmentCategories.map((category) => <option key={category} value={category}>{category}</option>)}<option value="other">Otra categoría</option></select>{customCategory && <input autoFocus required className={inputClass} value={value.category} onChange={(event) => set("category", event.target.value)} placeholder="Escribe la categoría" />}</label>
     <label className="text-sm font-semibold">Área<select className={inputClass} value={value.area_id} onChange={(event) => set("area_id", event.target.value)}><option value="">Sin área específica</option>{areas.filter((area) => area.is_active || area.id === initial?.area_id).map((area) => <option key={area.id} value={area.id}>{area.name}</option>)}</select></label>
     <label className="text-sm font-semibold">Marca<input className={inputClass} value={value.brand} onChange={(event) => set("brand", event.target.value)} /></label>
     <label className="text-sm font-semibold">Modelo<input className={inputClass} value={value.model} onChange={(event) => set("model", event.target.value)} /></label>
