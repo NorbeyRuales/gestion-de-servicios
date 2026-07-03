@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   BarChart2, ClipboardList, Cpu, FileText, LayoutDashboard, LogOut,
   Loader2, MapPin, Menu, Settings, Users, Wrench, X,
@@ -39,6 +39,16 @@ interface NavigationItem {
   screen: Screen;
   label: string;
   icon: LucideIcon;
+}
+
+interface AppHistoryState {
+  gestorApp: true;
+  depth: number;
+  screen: Screen;
+  selectedClient: string;
+  selectedLocation: string;
+  selectedAsset: string;
+  selectedWorkOrder: string;
 }
 
 const navigation: NavigationItem[] = [
@@ -120,31 +130,78 @@ function BottomNavigation({ active, onNavigate }: { active: NavigationId; onNavi
 
 export default function App({ profile, onSignOut }: { profile: Profile; onSignOut: () => Promise<void> }) {
   const [screen, setScreen] = useState<Screen>("dashboard");
-  const [history, setHistory] = useState<Screen[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("");
   const [selectedWorkOrder, setSelectedWorkOrder] = useState("");
 
+  useEffect(() => {
+    const initial: AppHistoryState = {
+      gestorApp: true, depth: 0, screen: "dashboard",
+      selectedClient: "", selectedLocation: "", selectedAsset: "", selectedWorkOrder: "",
+    };
+    if (!window.history.state?.gestorApp) {
+      window.history.replaceState(initial, "");
+      window.history.pushState(initial, "");
+    }
+
+    const handleBack = (event: PopStateEvent) => {
+      const state = event.state as AppHistoryState | null;
+      if (!state?.gestorApp) return;
+      setScreen(state.screen);
+      setSelectedClient(state.selectedClient);
+      setSelectedLocation(state.selectedLocation);
+      setSelectedAsset(state.selectedAsset);
+      setSelectedWorkOrder(state.selectedWorkOrder);
+      setSidebarOpen(false);
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, []);
+
+  useEffect(() => {
+    const current = window.history.state as AppHistoryState | undefined;
+    if (!current?.gestorApp) return;
+    window.history.replaceState({
+      ...current, screen, selectedClient, selectedLocation, selectedAsset, selectedWorkOrder,
+    } satisfies AppHistoryState, "");
+  }, [screen, selectedAsset, selectedClient, selectedLocation, selectedWorkOrder]);
+
+  const pushScreen = (next: Screen) => {
+    const current = window.history.state as AppHistoryState | undefined;
+    window.history.pushState({
+      gestorApp: true,
+      depth: (current?.gestorApp ? current.depth : 0) + 1,
+      screen: next,
+      selectedClient,
+      selectedLocation,
+      selectedAsset,
+      selectedWorkOrder,
+    } satisfies AppHistoryState, "");
+  };
+
   const navigate = (next: Screen) => {
     if (next === screen) return;
-    setHistory((current) => [...current, screen]);
+    pushScreen(next);
     setScreen(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const navigateRoot = (next: Screen) => {
-    setHistory([]);
+    if (next !== screen) pushScreen(next);
     setScreen(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const goBack = () => {
-    const previous = history.at(-1) ?? "dashboard";
-    setHistory((current) => current.slice(0, -1));
-    setScreen(previous);
-    window.scrollTo({ top: 0 });
+    const current = window.history.state as AppHistoryState | undefined;
+    if (current?.gestorApp && current.depth > 0) {
+      window.history.back();
+      return;
+    }
+    navigateRoot("dashboard");
   };
 
   const active = activeNavigation(screen);

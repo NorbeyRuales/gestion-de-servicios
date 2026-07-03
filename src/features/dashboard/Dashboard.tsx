@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle, ArrowRight, CalendarClock, CheckCircle2, CircleDollarSign,
-  ClipboardList, Clock3, FileText, Loader2, Plus, RefreshCw, Users,
+  ChevronRight, ClipboardList, Clock3, FileText, Loader2, Plus, RefreshCw, Users,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
@@ -72,12 +72,13 @@ function errorMessage(error: unknown) {
   return "No fue posible cargar el dashboard.";
 }
 
-function KpiCard({ label, value, detail, icon: Icon, color }: {
+function KpiCard({ label, value, detail, icon: Icon, color, onClick }: {
   label: string;
   value: string | number;
   detail: string;
   icon: typeof ClipboardList;
   color: "orange" | "blue" | "red" | "green";
+  onClick: () => void;
 }) {
   const colors = {
     orange: "bg-orange-50 text-orange-600",
@@ -85,11 +86,11 @@ function KpiCard({ label, value, detail, icon: Icon, color }: {
     red: "bg-red-50 text-red-600",
     green: "bg-green-50 text-green-700",
   };
-  return <article className="rounded-xl border border-border bg-card p-4 shadow-sm">
-    <div className="mb-3 flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`grid h-9 w-9 place-items-center rounded-lg ${colors[color]}`}><Icon size={18} /></span></div>
+  return <button type="button" onClick={onClick} aria-label={`${label}: ${value}. ${detail}`} className="group relative w-full rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:border-orange-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-offset-2">
+    <div className="mb-3 flex items-start justify-between gap-3"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p><span className={`grid h-9 w-9 place-items-center rounded-lg transition-transform group-hover:scale-105 ${colors[color]}`}><Icon size={18} /></span></div>
     <p className="text-2xl font-bold">{value}</p>
-    <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
-  </article>;
+    <div className="mt-1 flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{detail}</p><ChevronRight size={16} className="text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-[#f97316]" /></div>
+  </button>;
 }
 
 export function DashboardScreen({ onNavigate }: { onNavigate: (target: DashboardTarget) => void }) {
@@ -150,10 +151,10 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (target: Dashboard
     {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
     {loading && orders.length === 0 && invoices.length === 0 ? <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div> : <>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <KpiCard label="Pendientes" value={metrics.pending} detail="Por cotizar o iniciar" color="orange" icon={AlertCircle} />
-        <KpiCard label="En proceso" value={metrics.inProgress} detail="Trabajos activos" color="blue" icon={Clock3} />
-        <KpiCard label="Sin facturar" value={metrics.unbilled} detail="Órdenes terminadas" color="red" icon={FileText} />
-        <KpiCard label="Por cobrar" value={formatMoney(metrics.receivables)} detail="Saldo de facturas" color="green" icon={CircleDollarSign} />
+        <KpiCard label="Pendientes" value={metrics.pending} detail="Por cotizar o iniciar" color="orange" icon={AlertCircle} onClick={() => onNavigate("orders")} />
+        <KpiCard label="En proceso" value={metrics.inProgress} detail="Trabajos activos" color="blue" icon={Clock3} onClick={() => onNavigate("orders")} />
+        <KpiCard label="Sin facturar" value={metrics.unbilled} detail="Órdenes terminadas" color="red" icon={FileText} onClick={() => onNavigate("invoices")} />
+        <KpiCard label="Por cobrar" value={formatMoney(metrics.receivables)} detail="Saldo de facturas" color="green" icon={CircleDollarSign} onClick={() => onNavigate("invoices")} />
       </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2">
