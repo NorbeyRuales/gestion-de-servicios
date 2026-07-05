@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { Camera, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Camera, Image, Loader2, Pencil, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 import { PhotoCaptionEditor } from "../../components/PhotoCaptionEditor";
@@ -102,6 +102,14 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
     }
 
     setFile(selectedFile);
+  };
+
+  const clearSelectedFile = () => {
+    setFile(null);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+    if (galleryInputRef.current) galleryInputRef.current.value = "";
+    setError("");
+    setSuccess("");
   };
 
   const load = useCallback(async () => {
@@ -218,7 +226,12 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
               <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
             </label>
           </div>
-          <p className={`mt-1.5 truncate text-xs font-normal ${file ? "font-semibold text-green-700" : "text-muted-foreground"}`}>{file ? `Lista: ${file.name}` : "Ninguna foto seleccionada"}</p>
+          {file ? <div className="mt-1.5 flex min-w-0 items-center justify-between gap-2">
+            <p className="min-w-0 truncate text-xs font-semibold text-green-700">Lista: {file.name}</p>
+            <button type="button" onClick={clearSelectedFile} className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-red-600" aria-label="Cancelar la foto seleccionada">
+              <X size={13} />Cancelar
+            </button>
+          </div> : <p className="mt-1.5 text-xs font-normal text-muted-foreground">Ninguna foto seleccionada</p>}
         </fieldset>
         <label className="text-sm font-semibold">Descripción
           <input className={`${inputClass} mt-1.5`} value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="Ej. Estado inicial del equipo" />
