@@ -7,6 +7,7 @@ import { supabase } from "../../lib/supabase";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 import type { ReportExportData } from "./reportExports";
 import { InvoiceDeleteModal } from "./InvoiceDeleteModal";
+import { exportWorkReportPdf, type WorkReportRow } from "./workReportPdf";
 
 type InvoiceStatus = "pending" | "partial" | "paid" | "void";
 interface NamedRelation { name: string }
@@ -29,10 +30,18 @@ interface ServiceRecord {
   client_id: string;
   status: string;
   completion_date: string | null;
+  start_date: string | null;
   created_at: string;
+  reported_problem: string | null;
+  work_performed: string | null;
+  observations: string | null;
+  pending_items: string | null;
   clients: NamedRelation | null;
   branches: NamedRelation | null;
   service_types: NamedRelation | null;
+  areas: NamedRelation | null;
+  assets: NamedRelation | null;
+  profiles: { full_name: string } | null;
   work_order_items: { subtotal: number }[];
 }
 
@@ -88,7 +97,7 @@ export function ReportsScreen({ canAdminister = false }: { canAdminister?: boole
         supabase.from("clients").select("id,name").order("name"),
         supabase.from("invoices").select("id,invoice_number,client_id,issue_date,due_date,status,grand_total,clients(name),payments(amount)").order("issue_date", { ascending: false }).limit(QUERY_LIMITS.report),
         supabase.from("payments").select("invoice_id,payment_date,amount").limit(QUERY_LIMITS.report),
-        supabase.from("work_orders").select("id,code,client_id,status,completion_date,created_at,clients(name),branches(name),service_types(name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.report),
+        supabase.from("work_orders").select("id,code,client_id,status,start_date,completion_date,created_at,reported_problem,work_performed,observations,pending_items,clients(name),branches(name),areas(name),assets(name),service_types(name),profiles!work_orders_assigned_to_fkey(full_name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.report),
         supabase.from("company_settings").select("business_name").eq("id", 1).single(),
       ]);
       if (!active) return;
@@ -160,11 +169,20 @@ export function ReportsScreen({ canAdminister = false }: { canAdminister?: boole
     }
   };
 
+  const exportWorks = () => {
+    const rows: WorkReportRow[] = report.serviceRows.map((service) => ({
+      code: service.code, client: service.clients?.name || "Cliente", branch: service.branches?.name || "Sin sede", area: service.areas?.name || "Sin área", asset: service.assets?.name || "Sin equipo", serviceType: service.service_types?.name || "Servicio", technician: service.profiles?.full_name || "Sin técnico", startDate: service.start_date, completionDate: service.completion_date, reportedProblem: service.reported_problem || "", workPerformed: service.work_performed || "", observations: service.observations || "", pendingItems: service.pending_items || "",
+    }));
+    if (!rows.length) return setError("No hay trabajos terminados para los filtros seleccionados.");
+    setError("");
+    exportWorkReportPdf(companyName, rows, from, to);
+  };
+
   const maxClientBilling = Math.max(...report.clientRows.slice(0, 5).map((client) => client.billed), 1);
   const totalStatuses = Math.max(report.statusCounts.reduce((sum, item) => sum + item.count, 0), 1);
 
   return <div>
-    <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-xl font-bold sm:text-2xl">Reportes</h1><p className="mt-0.5 text-sm text-muted-foreground">Facturación, recaudo, cartera y servicios realizados</p></div><div className="flex gap-2"><button onClick={() => void exportFile("excel")} disabled={Boolean(exporting)} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 disabled:opacity-60">{exporting === "excel" ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}Excel</button><button onClick={() => void exportFile("pdf")} disabled={Boolean(exporting)} className="flex items-center gap-2 rounded-lg bg-[#1a3558] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">{exporting === "pdf" ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}PDF</button></div></div>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-xl font-bold sm:text-2xl">Reportes</h1><p className="mt-0.5 text-sm text-muted-foreground">Facturación, recaudo, cartera y servicios realizados</p></div><div className="flex flex-wrap gap-2"><button onClick={exportWorks} disabled={loading} className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-semibold text-orange-800 disabled:opacity-60"><Wrench size={16} />PDF trabajos</button><button onClick={() => void exportFile("excel")} disabled={Boolean(exporting)} className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-semibold text-green-800 disabled:opacity-60">{exporting === "excel" ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}Excel</button><button onClick={() => void exportFile("pdf")} disabled={Boolean(exporting)} className="flex items-center gap-2 rounded-lg bg-[#1a3558] px-3 py-2 text-sm font-semibold text-white disabled:opacity-60">{exporting === "pdf" ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}PDF gestión</button></div></div>
 
     <section className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"><label className="text-xs font-semibold">Desde<input type="date" className={`${inputClass} mt-1 block`} value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label><label className="text-xs font-semibold">Hasta<input type="date" className={`${inputClass} mt-1 block`} value={to} min={from} max={today} onChange={(event) => setTo(event.target.value)} /></label><label className="min-w-56 flex-1 text-xs font-semibold">Cliente<select className={`${inputClass} mt-1 block w-full`} value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="">Todos los clientes</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><span className="flex items-center gap-1 pb-2 text-xs text-muted-foreground"><CalendarRange size={14} />Los indicadores cambian con estos filtros</span></section>
 

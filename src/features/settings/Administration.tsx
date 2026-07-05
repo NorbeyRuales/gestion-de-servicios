@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Building2, ShieldCheck, Trash2, Wrench } from "lucide-react";
+import { Building2, Layers3, ShieldCheck, Trash2, Wrench } from "lucide-react";
+import { AssetCategoriesManagement } from "./AssetCategoriesManagement";
 import type { UserRole } from "../../auth/AuthProvider";
 import { CompanySettingsScreen } from "./CompanySettings";
 import { DeletionLogs } from "./DeletionLogs";
 import { ServiceTypesManagement } from "./ServiceTypesManagement";
 import { UsersManagement } from "./UsersManagement";
 
-type Tab = "company" | "users" | "services" | "deletions";
+type Tab = "company" | "users" | "services" | "categories" | "deletions";
 
 export function AdministrationScreen({ currentUserId, role }: { currentUserId: string; role: UserRole }) {
   const [tab, setTab] = useState<Tab>("company");
@@ -16,6 +17,7 @@ export function AdministrationScreen({ currentUserId, role }: { currentUserId: s
     ...(isAdmin ? [
       { id: "users" as const, label: "Usuarios y roles", icon: ShieldCheck },
       { id: "services" as const, label: "Tipos de servicio", icon: Wrench },
+      { id: "categories" as const, label: "Categorías", icon: Layers3 },
       { id: "deletions" as const, label: "Eliminaciones", icon: Trash2 },
     ] : []),
   ];
@@ -25,6 +27,7 @@ export function AdministrationScreen({ currentUserId, role }: { currentUserId: s
     {tab === "company" && <CompanySettingsScreen canEdit={isAdmin} />}
     {isAdmin && tab === "users" && <UsersManagement currentUserId={currentUserId} />}
     {isAdmin && tab === "services" && <ServiceTypesManagement />}
+    {isAdmin && tab === "categories" && <AssetCategoriesManagement />}
     {isAdmin && tab === "deletions" && <DeletionLogs />}
   </div>;
 }
