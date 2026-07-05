@@ -78,6 +78,7 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
 
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null;
+    event.currentTarget.blur();
     setError("");
     setSuccess("");
 
