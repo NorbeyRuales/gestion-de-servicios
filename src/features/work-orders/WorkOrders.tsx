@@ -14,7 +14,7 @@ type WorkOrderStatus = "pending" | "quoted" | "approved" | "in_progress" | "comp
 type ItemType = "material" | "spare_part" | "labor" | "transport" | "rental" | "other";
 
 interface Option { id: string; name: string; area_id?: string | null }
-interface ProfileOption { id: string; full_name: string }
+interface TechnicianOption { id: string; name: string; specialty: string | null; company: string | null; is_active: boolean }
 interface WorkItem { id?: string; item_type: ItemType; description: string; quantity: number; unit_price: number }
 
 interface WorkOrderListRecord {
@@ -30,7 +30,6 @@ interface WorkOrderListRecord {
   clients: Option | null;
   branches: Option | null;
   service_types: Option | null;
-  profiles: ProfileOption | null;
   work_order_items: { subtotal: number }[];
 }
 
@@ -43,6 +42,7 @@ interface WorkOrderRecord {
   asset_id: string | null;
   service_type_id: string;
   assigned_to: string | null;
+  technician_id: string | null;
   scheduled_date: string | null;
   start_date: string | null;
   completion_date: string | null;
@@ -110,7 +110,7 @@ export function WorkOrdersScreen({ canAdminister = false, onCreate, onEdit }: { 
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    const { data, error: queryError } = await supabase.from("work_orders").select("id,code,status,scheduled_date,start_date,completion_date,created_at,reported_problem,work_performed,clients(id,name),branches(id,name),service_types(id,name),profiles!work_orders_assigned_to_fkey(id,full_name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.list);
+    const { data, error: queryError } = await supabase.from("work_orders").select("id,code,status,scheduled_date,start_date,completion_date,created_at,reported_problem,work_performed,clients(id,name),branches(id,name),service_types(id,name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.list);
     if (queryError) setError(messageFrom(queryError)); else setOrders((data ?? []) as unknown as WorkOrderListRecord[]);
     setLoading(false);
   }, []);
@@ -197,13 +197,13 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
   const [areas, setAreas] = useState<Option[]>([]);
   const [assets, setAssets] = useState<Option[]>([]);
   const [serviceTypes, setServiceTypes] = useState<Option[]>([]);
-  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
+  const [technicians, setTechnicians] = useState<TechnicianOption[]>([]);
   const [clientId, setClientId] = useState(initialClientId ?? "");
   const [branchId, setBranchId] = useState(initialBranchId ?? "");
   const [areaId, setAreaId] = useState("");
   const [assetId, setAssetId] = useState(initialAssetId ?? "");
   const [serviceTypeId, setServiceTypeId] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [technicianId, setTechnicianId] = useState("");
   const [status, setStatus] = useState<WorkOrderStatus>("pending");
   const [scheduledDate, setScheduledDate] = useState(new Date().toISOString().slice(0, 10));
   const [startDate, setStartDate] = useState("");
@@ -222,19 +222,19 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
   useEffect(() => {
     void (async () => {
       setLoading(true);
-      const [clientsResult, typesResult, profilesResult] = await Promise.all([
+      const [clientsResult, typesResult, techniciansResult] = await Promise.all([
         supabase.from("clients").select("id,name").eq("is_active", true).order("name"),
         supabase.from("service_types").select("id,name").eq("is_active", true).order("sort_order"),
-        supabase.from("profiles").select("id,full_name").eq("is_active", true).order("full_name"),
+        supabase.from("technicians").select("id,name,specialty,company,is_active").order("name"),
       ]);
-      const firstError = clientsResult.error || typesResult.error || profilesResult.error;
+      const firstError = clientsResult.error || typesResult.error || techniciansResult.error;
       if (firstError) setError(messageFrom(firstError));
-      setClients((clientsResult.data ?? []) as Option[]); setServiceTypes((typesResult.data ?? []) as Option[]); setProfiles((profilesResult.data ?? []) as ProfileOption[]);
+      setClients((clientsResult.data ?? []) as Option[]); setServiceTypes((typesResult.data ?? []) as Option[]); setTechnicians((techniciansResult.data ?? []) as TechnicianOption[]);
       if (!orderId) { setServiceTypeId(typesResult.data?.[0]?.id ?? ""); setLoading(false); return; }
-      const { data, error: orderError } = await supabase.from("work_orders").select("id,code,client_id,execution_branch_id,area_id,asset_id,service_type_id,assigned_to,scheduled_date,start_date,completion_date,reported_problem,work_performed,observations,pending_items,status,work_order_items(id,item_type,description,quantity,unit_price)").eq("id", orderId).single();
+      const { data, error: orderError } = await supabase.from("work_orders").select("id,code,client_id,execution_branch_id,area_id,asset_id,service_type_id,assigned_to,technician_id,scheduled_date,start_date,completion_date,reported_problem,work_performed,observations,pending_items,status,work_order_items(id,item_type,description,quantity,unit_price)").eq("id", orderId).single();
       if (orderError) setError(messageFrom(orderError)); else if (data) {
         const order = data as unknown as WorkOrderRecord;
-        setOrderCode(order.code); setClientId(order.client_id); setBranchId(order.execution_branch_id); setAreaId(order.area_id ?? ""); setAssetId(order.asset_id ?? ""); setServiceTypeId(order.service_type_id); setAssignedTo(order.assigned_to ?? ""); setScheduledDate(order.scheduled_date ?? ""); setStartDate(order.start_date?.slice(0, 16) ?? ""); setCompletionDate(order.completion_date?.slice(0, 16) ?? ""); setReportedProblem(order.reported_problem ?? ""); setWorkPerformed(order.work_performed ?? ""); setObservations(order.observations ?? ""); setPendingItems(order.pending_items ?? ""); setStatus(order.status); setItems(order.work_order_items ?? []);
+        setOrderCode(order.code); setClientId(order.client_id); setBranchId(order.execution_branch_id); setAreaId(order.area_id ?? ""); setAssetId(order.asset_id ?? ""); setServiceTypeId(order.service_type_id); setTechnicianId(order.technician_id ?? ""); setScheduledDate(order.scheduled_date ?? ""); setStartDate(order.start_date?.slice(0, 16) ?? ""); setCompletionDate(order.completion_date?.slice(0, 16) ?? ""); setReportedProblem(order.reported_problem ?? ""); setWorkPerformed(order.work_performed ?? ""); setObservations(order.observations ?? ""); setPendingItems(order.pending_items ?? ""); setStatus(order.status); setItems(order.work_order_items ?? []);
       }
       setLoading(false);
     })();
@@ -255,7 +255,7 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
     if (items.some((item) => !item.description.trim() || Number(item.quantity) <= 0 || Number(item.unit_price) < 0)) return setError("Completa correctamente todos los ítems de costo.");
     setSaving(true);
     try {
-      const { error: saveError } = await supabase.rpc("save_work_order", { payload: { id: orderId ?? null, client_id: clientId, execution_branch_id: branchId, area_id: areaId || null, asset_id: assetId || null, service_type_id: serviceTypeId, assigned_to: assignedTo || null, scheduled_date: scheduledDate || null, start_date: startDate ? new Date(startDate).toISOString() : null, completion_date: completionDate ? new Date(completionDate).toISOString() : null, reported_problem: reportedProblem, work_performed: workPerformed, observations, pending_items: pendingItems, status, items: items.map(({ item_type, description, quantity, unit_price }) => ({ item_type, description: description.trim(), quantity: Number(quantity), unit_price: Number(unit_price) })) } });
+      const { error: saveError } = await supabase.rpc("save_work_order_with_technician", { payload: { id: orderId ?? null, client_id: clientId, execution_branch_id: branchId, area_id: areaId || null, asset_id: assetId || null, service_type_id: serviceTypeId, technician_id: technicianId || null, scheduled_date: scheduledDate || null, start_date: startDate ? new Date(startDate).toISOString() : null, completion_date: completionDate ? new Date(completionDate).toISOString() : null, reported_problem: reportedProblem, work_performed: workPerformed, observations, pending_items: pendingItems, status, items: items.map(({ item_type, description, quantity, unit_price }) => ({ item_type, description: description.trim(), quantity: Number(quantity), unit_price: Number(unit_price) })) } });
       if (saveError) return setError(messageFrom(saveError));
       onSaved();
     } finally {
@@ -302,7 +302,7 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
         <label className="text-sm font-semibold">Tipo de servicio *<select required className={`${inputClass} mt-1.5`} value={serviceTypeId} onChange={(event) => setServiceTypeId(event.target.value)}><option value="">Selecciona…</option>{serviceTypes.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
         <label className="text-sm font-semibold">Área<select className={`${inputClass} mt-1.5`} value={areaId} onChange={(event) => { setAreaId(event.target.value); setAssetId(""); }}><option value="">Sin área específica</option>{areas.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
         <label className="text-sm font-semibold">Equipo<select className={`${inputClass} mt-1.5`} value={assetId} onChange={(event) => { const nextId = event.target.value; setAssetId(nextId); const selected = assets.find((asset) => asset.id === nextId); if (selected?.area_id) setAreaId(selected.area_id); }}><option value="">Sin equipo asociado</option>{assets.filter((option) => !areaId || !option.area_id || option.area_id === areaId).map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}</select></label>
-        <label className="text-sm font-semibold">Técnico<select className={`${inputClass} mt-1.5`} value={assignedTo} onChange={(event) => setAssignedTo(event.target.value)}><option value="">Sin asignar</option>{profiles.map((option) => <option key={option.id} value={option.id}>{option.full_name}</option>)}</select></label>
+        <label className="text-sm font-semibold">Técnico<select className={`${inputClass} mt-1.5`} value={technicianId} onChange={(event) => setTechnicianId(event.target.value)}><option value="">Sin asignar</option>{technicians.filter((option) => option.is_active || option.id === technicianId).map((option) => <option key={option.id} value={option.id} disabled={!option.is_active}>{option.name}{option.specialty ? ` · ${option.specialty}` : ""}{option.company ? ` (${option.company})` : ""}{!option.is_active ? " · Inactivo" : ""}</option>)}</select></label>
         <label className="text-sm font-semibold">Estado<select className={`${inputClass} mt-1.5`} value={status} onChange={(event) => setStatus(event.target.value as WorkOrderStatus)}>{Object.entries(statusLabels).filter(([value]) => value !== "invoiced" || status === "invoiced").map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
         <label className="text-sm font-semibold">Fecha programada<input type="date" className={`${inputClass} mt-1.5`} value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} /></label>
         <label className="text-sm font-semibold">Inicio<input type="datetime-local" className={`${inputClass} mt-1.5`} value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>

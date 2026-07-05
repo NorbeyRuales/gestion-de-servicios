@@ -41,7 +41,7 @@ interface ServiceRecord {
   service_types: NamedRelation | null;
   areas: NamedRelation | null;
   assets: NamedRelation | null;
-  profiles: { full_name: string } | null;
+  technicians: NamedRelation | null;
   work_order_items: { subtotal: number }[];
 }
 
@@ -97,7 +97,7 @@ export function ReportsScreen({ canAdminister = false }: { canAdminister?: boole
         supabase.from("clients").select("id,name").order("name"),
         supabase.from("invoices").select("id,invoice_number,client_id,issue_date,due_date,status,grand_total,clients(name),payments(amount)").order("issue_date", { ascending: false }).limit(QUERY_LIMITS.report),
         supabase.from("payments").select("invoice_id,payment_date,amount").limit(QUERY_LIMITS.report),
-        supabase.from("work_orders").select("id,code,client_id,status,start_date,completion_date,created_at,reported_problem,work_performed,observations,pending_items,clients(name),branches(name),areas(name),assets(name),service_types(name),profiles!work_orders_assigned_to_fkey(full_name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.report),
+        supabase.from("work_orders").select("id,code,client_id,status,start_date,completion_date,created_at,reported_problem,work_performed,observations,pending_items,clients(name),branches(name),areas(name),assets(name),service_types(name),technicians(name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.report),
         supabase.from("company_settings").select("business_name").eq("id", 1).single(),
       ]);
       if (!active) return;
@@ -171,7 +171,7 @@ export function ReportsScreen({ canAdminister = false }: { canAdminister?: boole
 
   const exportWorks = () => {
     const rows: WorkReportRow[] = report.serviceRows.map((service) => ({
-      code: service.code, client: service.clients?.name || "Cliente", branch: service.branches?.name || "Sin sede", area: service.areas?.name || "Sin área", asset: service.assets?.name || "Sin equipo", serviceType: service.service_types?.name || "Servicio", technician: service.profiles?.full_name || "Sin técnico", startDate: service.start_date, completionDate: service.completion_date, reportedProblem: service.reported_problem || "", workPerformed: service.work_performed || "", observations: service.observations || "", pendingItems: service.pending_items || "",
+      code: service.code, client: service.clients?.name || "Cliente", branch: service.branches?.name || "Sin sede", area: service.areas?.name || "Sin área", asset: service.assets?.name || "Sin equipo", serviceType: service.service_types?.name || "Servicio", technician: service.technicians?.name || "Sin técnico", startDate: service.start_date, completionDate: service.completion_date, reportedProblem: service.reported_problem || "", workPerformed: service.work_performed || "", observations: service.observations || "", pendingItems: service.pending_items || "",
     }));
     if (!rows.length) return setError("No hay trabajos terminados para los filtros seleccionados.");
     setError("");

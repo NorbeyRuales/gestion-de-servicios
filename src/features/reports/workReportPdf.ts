@@ -88,15 +88,15 @@ export function exportWorkReportPdf(companyName: string, rows: WorkReportRow[], 
 
 export async function exportSingleWorkOrderPdf(orderId: string) {
   const [orderResult, companyResult] = await Promise.all([
-    supabase.from("work_orders").select("code,start_date,completion_date,reported_problem,work_performed,observations,pending_items,clients(name),branches(name),areas(name),assets(name),service_types(name),profiles!work_orders_assigned_to_fkey(full_name)").eq("id", orderId).single(),
+    supabase.from("work_orders").select("code,start_date,completion_date,reported_problem,work_performed,observations,pending_items,clients(name),branches(name),areas(name),assets(name),service_types(name),technicians(name)").eq("id", orderId).single(),
     supabase.from("company_settings").select("business_name").eq("id", 1).single(),
   ]);
   if (orderResult.error) throw orderResult.error;
   const order = orderResult.data as unknown as {
     code: string; start_date: string | null; completion_date: string | null; reported_problem: string | null; work_performed: string | null; observations: string | null; pending_items: string | null;
-    clients: { name: string } | null; branches: { name: string } | null; areas: { name: string } | null; assets: { name: string } | null; service_types: { name: string } | null; profiles: { full_name: string } | null;
+    clients: { name: string } | null; branches: { name: string } | null; areas: { name: string } | null; assets: { name: string } | null; service_types: { name: string } | null; technicians: { name: string } | null;
   };
   exportWorkReportPdf(companyResult.data?.business_name || "Gestor de Servicios", [{
-    code: order.code, client: order.clients?.name || "Cliente", branch: order.branches?.name || "Sin sede", area: order.areas?.name || "Sin área", asset: order.assets?.name || "Sin equipo", serviceType: order.service_types?.name || "Servicio", technician: order.profiles?.full_name || "Sin técnico", startDate: order.start_date, completionDate: order.completion_date, reportedProblem: order.reported_problem || "", workPerformed: order.work_performed || "", observations: order.observations || "", pendingItems: order.pending_items || "",
+    code: order.code, client: order.clients?.name || "Cliente", branch: order.branches?.name || "Sin sede", area: order.areas?.name || "Sin área", asset: order.assets?.name || "Sin equipo", serviceType: order.service_types?.name || "Servicio", technician: order.technicians?.name || "Sin técnico", startDate: order.start_date, completionDate: order.completion_date, reportedProblem: order.reported_problem || "", workPerformed: order.work_performed || "", observations: order.observations || "", pendingItems: order.pending_items || "",
   }]);
 }
