@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { Camera, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
@@ -73,6 +73,14 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
   const [editingId, setEditingId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+
+  const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
+    setFile(event.target.files?.[0] ?? null);
+    setError("");
+    setSuccess("");
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,6 +137,8 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
       }
 
       setFile(null);
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      if (galleryInputRef.current) galleryInputRef.current.value = "";
       setCaption("");
       setSuccess("Foto subida correctamente.");
       await load();
@@ -174,9 +184,20 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
             {Object.entries(photoLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
         </label>
-        <label className="text-sm font-semibold">Foto
-          <input type="file" accept="image/jpeg,image/png,image/webp" className={`${inputClass} mt-1.5`} onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-        </label>
+        <fieldset className="min-w-0">
+          <legend className="text-sm font-semibold">Foto</legend>
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#f97316] bg-orange-50 px-3 text-sm font-semibold text-[#c2410c]">
+              <Camera size={16} />Tomar foto
+            </button>
+            <button type="button" onClick={() => galleryInputRef.current?.click()} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-input-background px-3 text-sm font-semibold">
+              <Image size={16} />Galería
+            </button>
+          </div>
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={selectFile} />
+          <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectFile} />
+          <p className="mt-1.5 truncate text-xs font-normal text-muted-foreground">{file?.name || "Ninguna foto seleccionada"}</p>
+        </fieldset>
         <label className="text-sm font-semibold">Descripción
           <input className={`${inputClass} mt-1.5`} value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="Ej. Estado inicial del equipo" />
         </label>
