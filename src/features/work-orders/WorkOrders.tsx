@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, ClipboardList,
-  DollarSign, Download, Loader2, Package, Plus, Search, Trash2, Wrench,
+  DollarSign, Download, FileText, Loader2, Package, Plus, Search, Trash2, Wrench,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { requestControlledDeletion } from "../../lib/adminDeletion";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 import { WorkOrderPhotos } from "./WorkOrderPhotos";
 import { exportSingleWorkOrderPdf } from "../reports/workReportPdf";
+import { exportQuotePdf } from "./quotePdf";
 
 type WorkOrderStatus = "pending" | "quoted" | "approved" | "in_progress" | "completed" | "cancelled" | "invoiced";
 type ItemType = "material" | "spare_part" | "labor" | "transport" | "rental" | "other";
@@ -21,6 +22,8 @@ interface WorkOrderListRecord {
   code: string;
   status: WorkOrderStatus;
   scheduled_date: string | null;
+  start_date: string | null;
+  completion_date: string | null;
   created_at: string;
   reported_problem: string | null;
   work_performed: string | null;
@@ -101,12 +104,13 @@ export function WorkOrdersScreen({ canAdminister = false, onCreate, onEdit }: { 
   const [success, setSuccess] = useState("");
   const [deletingId, setDeletingId] = useState("");
   const [exportingId, setExportingId] = useState("");
+  const [updatingStatusId, setUpdatingStatusId] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<WorkOrderStatus | "all">("all");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
-    const { data, error: queryError } = await supabase.from("work_orders").select("id,code,status,scheduled_date,created_at,reported_problem,work_performed,clients(id,name),branches(id,name),service_types(id,name),profiles!work_orders_assigned_to_fkey(id,full_name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.list);
+    const { data, error: queryError } = await supabase.from("work_orders").select("id,code,status,scheduled_date,start_date,completion_date,created_at,reported_problem,work_performed,clients(id,name),branches(id,name),service_types(id,name),profiles!work_orders_assigned_to_fkey(id,full_name),work_order_items(subtotal)").order("created_at", { ascending: false }).limit(QUERY_LIMITS.list);
     if (queryError) setError(messageFrom(queryError)); else setOrders((data ?? []) as unknown as WorkOrderListRecord[]);
     setLoading(false);
   }, []);
@@ -143,9 +147,47 @@ export function WorkOrdersScreen({ canAdminister = false, onCreate, onEdit }: { 
     }
   };
 
+  const exportQuickQuote = async (order: WorkOrderListRecord) => {
+    setExportingId(order.id); setError(""); setSuccess("");
+    try { await exportQuotePdf(order.id); }
+    catch (exportError) { setError(`No fue posible generar la cotización de ${order.code}: ${messageFrom(exportError)}`); }
+    finally { setExportingId(""); }
+  };
+
+  const changeStatus = async (order: WorkOrderListRecord, nextStatus: WorkOrderStatus) => {
+    if (nextStatus === order.status) return;
+    if (nextStatus === "completed" && !order.work_performed?.trim()) {
+      setError("Debes registrar el trabajo realizado antes de terminar la orden.");
+      return;
+    }
+    if (nextStatus === "invoiced") {
+      setError("El estado facturado se asigna al generar la factura.");
+      return;
+    }
+    setUpdatingStatusId(order.id); setError(""); setSuccess("");
+    try {
+      const now = new Date().toISOString();
+      const automaticCompletion = order.start_date && new Date(order.start_date).getTime() > new Date(now).getTime()
+        ? order.start_date
+        : now;
+      const dates = {
+        start_date: nextStatus === "in_progress" ? order.start_date || now : order.start_date,
+        completion_date: nextStatus === "completed" ? order.completion_date || automaticCompletion : null,
+      };
+      const { error: updateError } = await supabase.from("work_orders").update({ status: nextStatus, ...dates }).eq("id", order.id);
+      if (updateError) throw updateError;
+      setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status: nextStatus, ...dates } : item));
+      setSuccess(`La orden ${order.code} cambió a ${statusLabels[nextStatus]}.`);
+    } catch (updateError) {
+      setError(messageFrom(updateError));
+    } finally {
+      setUpdatingStatusId("");
+    }
+  };
+
   return <div><PageTitle title="Órdenes de trabajo" subtitle={`${orders.length} orden${orders.length === 1 ? "" : "es"} registrada${orders.length === 1 ? "" : "s"}`} action={<button onClick={onCreate} className="flex items-center gap-2 bg-[#f97316] text-white px-4 py-2 rounded-lg text-sm font-semibold"><Plus size={16} />Nueva orden</button>} /><Feedback error={error} success={success} />
     <div className="grid sm:grid-cols-[1fr_190px] gap-3 mb-4"><div className="relative"><Search size={17} className="absolute left-3 top-3 text-muted-foreground" /><input className={`${inputClass} pl-10`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por código, cliente, sede o descripción…" /></div><select className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as WorkOrderStatus | "all")}><option value="all">Todos los estados</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
-    {loading ? <div className="py-20 grid place-items-center text-muted-foreground"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? <div className="bg-card border border-dashed border-border rounded-2xl p-14 text-center"><ClipboardList className="mx-auto text-muted-foreground" /><h2 className="mt-3 font-bold">{orders.length ? "No hay coincidencias" : "Aún no hay órdenes"}</h2>{!orders.length && <button onClick={onCreate} className="mt-4 bg-[#f97316] text-white rounded-lg px-4 py-2 font-semibold">Crear primera orden</button>}</div> : <div className="space-y-3">{filtered.map((order) => { const total = order.work_order_items.reduce((sum, item) => sum + Number(item.subtotal), 0); const canDelete = canAdminister && ["pending", "cancelled"].includes(order.status); const canExport = ["completed", "invoiced"].includes(order.status); return <article key={order.id} className="flex overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:border-orange-200 hover:shadow-md"><button type="button" onClick={() => onEdit(order.id)} className="min-w-0 flex-1 p-4 text-left"><div className="flex items-start gap-3"><div className="h-10 w-10 rounded-lg bg-muted text-[#1a3558] grid place-items-center shrink-0"><Wrench size={18} /></div><div className="flex-1 min-w-0"><div className="flex items-start justify-between gap-3"><div><h3 className="font-semibold text-sm">{order.reported_problem || order.work_performed || "Orden sin descripción"}</h3><p className="text-xs font-mono text-muted-foreground mt-0.5">{order.code}</p></div><div className="flex items-center gap-2"><span className={`text-xs px-2 py-1 rounded ${statusStyles[order.status]}`}>{statusLabels[order.status]}</span><ChevronRight size={16} className="text-muted-foreground" /></div></div><div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground"><span>{order.clients?.name}</span><span>{order.branches?.name}</span><span>{order.service_types?.name}</span><span>{localDate(order.scheduled_date || order.created_at)}</span><strong className="text-foreground ml-auto">{formatMoney(total)}</strong></div></div></div></button>{(canExport || canDelete) && <div className="grid place-items-center gap-2 border-l border-border px-3">{canExport && <button type="button" disabled={exportingId === order.id} onClick={() => void exportQuickReport(order)} title="Descargar reporte PDF" aria-label={`Descargar reporte PDF de ${order.code}`} className="grid h-9 w-9 place-items-center rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 disabled:opacity-50">{exportingId === order.id ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}</button>}{canDelete && <button type="button" disabled={deletingId === order.id} onClick={() => void removeOrder(order)} title="Eliminar orden" aria-label={`Eliminar orden ${order.code}`} className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50">{deletingId === order.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</button>}</div>}</article>; })}</div>}
+    {loading ? <div className="py-20 grid place-items-center text-muted-foreground"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? <div className="bg-card border border-dashed border-border rounded-2xl p-14 text-center"><ClipboardList className="mx-auto text-muted-foreground" /><h2 className="mt-3 font-bold">{orders.length ? "No hay coincidencias" : "Aún no hay órdenes"}</h2>{!orders.length && <button onClick={onCreate} className="mt-4 bg-[#f97316] text-white rounded-lg px-4 py-2 font-semibold">Crear primera orden</button>}</div> : <div className="space-y-3">{filtered.map((order) => { const total = order.work_order_items.reduce((sum, item) => sum + Number(item.subtotal), 0); const canDelete = canAdminister && ["pending", "cancelled"].includes(order.status); const canExport = ["completed", "invoiced"].includes(order.status); const canQuote = order.status === "quoted"; const isInvoiced = order.status === "invoiced"; return <article key={order.id} className="flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all hover:border-orange-200 hover:shadow-md sm:flex-row"><button type="button" onClick={() => onEdit(order.id)} className="min-w-0 flex-1 p-4 text-left"><div className="flex items-start gap-3"><div className="h-10 w-10 rounded-lg bg-muted text-[#1a3558] grid place-items-center shrink-0"><Wrench size={18} /></div><div className="flex-1 min-w-0"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words font-semibold text-sm">{order.reported_problem || order.work_performed || "Orden sin descripción"}</h3><p className="text-xs font-mono text-muted-foreground mt-0.5">{order.code}</p></div><ChevronRight size={16} className="shrink-0 text-muted-foreground" /></div><div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-muted-foreground"><span>{order.clients?.name}</span><span>{order.branches?.name}</span><span>{order.service_types?.name}</span><span>{localDate(order.scheduled_date || order.created_at)}</span><strong className="w-full text-foreground sm:ml-auto sm:w-auto">{formatMoney(total)}</strong></div></div></div></button><div className="flex min-w-0 items-center justify-between border-t border-border px-4 py-3 sm:grid sm:min-w-36 sm:place-items-center sm:border-t-0 sm:px-3 sm:py-0"><span className="text-xs text-muted-foreground sm:hidden">Estado</span><div className="relative max-w-full">{updatingStatusId === order.id && <Loader2 size={14} className="absolute -left-5 top-2 animate-spin text-muted-foreground" />}<select aria-label={`Estado de la orden ${order.code}`} disabled={isInvoiced || updatingStatusId === order.id} value={order.status} onChange={(event) => void changeStatus(order, event.target.value as WorkOrderStatus)} className={`max-w-full cursor-pointer appearance-none rounded px-2.5 py-1.5 pr-7 text-xs font-semibold outline-none ring-offset-2 focus:ring-2 disabled:cursor-not-allowed ${statusStyles[order.status]}`}>{Object.entries(statusLabels).filter(([value]) => value !== "invoiced" || isInvoiced).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div></div>{(canQuote || canExport || canDelete) && <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3 sm:grid sm:place-items-center sm:border-l sm:border-t-0 sm:px-3 sm:py-0">{canQuote && <button type="button" disabled={exportingId === order.id} onClick={() => void exportQuickQuote(order)} title="Descargar cotización PDF" aria-label={`Descargar cotización PDF de ${order.code}`} className="grid h-9 w-9 place-items-center rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 disabled:opacity-50">{exportingId === order.id ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}</button>}{canExport && <button type="button" disabled={exportingId === order.id} onClick={() => void exportQuickReport(order)} title="Descargar reporte PDF" aria-label={`Descargar reporte PDF de ${order.code}`} className="grid h-9 w-9 place-items-center rounded-lg border border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 disabled:opacity-50">{exportingId === order.id ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}</button>}{canDelete && <button type="button" disabled={deletingId === order.id} onClick={() => void removeOrder(order)} title="Eliminar orden" aria-label={`Eliminar orden ${order.code}`} className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50">{deletingId === order.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}</button>}</div>}</article>; })}</div>}
   </div>;
 }
 
@@ -242,6 +284,14 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
     finally { setExporting(false); }
   };
 
+  const exportQuote = async () => {
+    if (!orderId) return;
+    setError(""); setExporting(true);
+    try { await exportQuotePdf(orderId); }
+    catch (exportError) { setError(`No fue posible generar la cotización: ${messageFrom(exportError)}`); }
+    finally { setExporting(false); }
+  };
+
   if (loading) return <div className="py-20 grid place-items-center text-muted-foreground"><Loader2 className="animate-spin" /></div>;
   const locked = status === "invoiced";
   return <div><PageTitle title={orderId ? "Editar orden de trabajo" : "Nueva orden de trabajo"} subtitle="Registra el servicio, la ejecución y todos sus costos" onBack={onBack} /><Feedback error={error} />
@@ -260,7 +310,7 @@ export function WorkOrderFormScreen({ orderId, initialClientId, initialBranchId,
       </div></section>
       <section className="bg-card rounded-xl border border-border p-5 shadow-sm"><h2 className="font-bold flex items-center gap-2 mb-4"><Wrench size={18} className="text-[#f97316]" />Descripción del servicio</h2><div className="grid md:grid-cols-2 gap-4"><label className="text-sm font-semibold">Problema reportado<textarea rows={4} className={`${inputClass} mt-1.5`} value={reportedProblem} onChange={(event) => setReportedProblem(event.target.value)} /></label><label className="text-sm font-semibold">Trabajo realizado<textarea rows={4} className={`${inputClass} mt-1.5`} value={workPerformed} onChange={(event) => setWorkPerformed(event.target.value)} /></label><label className="text-sm font-semibold">Observaciones<textarea rows={3} className={`${inputClass} mt-1.5`} value={observations} onChange={(event) => setObservations(event.target.value)} /></label><label className="text-sm font-semibold">Pendientes por resolver<textarea rows={3} className={`${inputClass} mt-1.5`} value={pendingItems} onChange={(event) => setPendingItems(event.target.value)} /></label></div></section>
       <section className="bg-card rounded-xl border border-border p-5 shadow-sm"><div className="flex justify-between items-center mb-4"><h2 className="font-bold flex items-center gap-2"><DollarSign size={18} className="text-[#f97316]" />Costos</h2><button type="button" onClick={addItem} className="flex items-center gap-1 text-sm font-semibold text-[#f97316]"><Plus size={15} />Agregar ítem</button></div>{items.length === 0 ? <div className="border border-dashed border-border rounded-lg p-7 text-center text-sm text-muted-foreground"><Package className="mx-auto mb-2" />No hay costos registrados. Puedes guardar una orden sin costo.</div> : <div className="space-y-3">{items.map((item, index) => <div key={item.id ?? index} className="grid grid-cols-2 lg:grid-cols-[160px_1fr_100px_150px_40px] gap-2 items-end border border-border rounded-lg p-3"><label className="text-xs font-semibold">Tipo<select className={`${inputClass} mt-1`} value={item.item_type} onChange={(event) => updateItem(index, "item_type", event.target.value)}>{Object.entries(itemLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-xs font-semibold col-span-2 lg:col-span-1">Descripción<input className={`${inputClass} mt-1`} value={item.description} onChange={(event) => updateItem(index, "description", event.target.value)} /></label><label className="text-xs font-semibold">Cantidad<input type="number" min="0.01" step="0.01" inputMode="decimal" placeholder="0" className={`${inputClass} mt-1`} value={item.quantity || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateItem(index, "quantity", Number(event.target.value))} /></label><label className="text-xs font-semibold">Valor unitario<input type="number" min="0" step="1" inputMode="numeric" placeholder="$ 0" className={`${inputClass} mt-1`} value={item.unit_price || ""} onFocus={(event) => event.currentTarget.select()} onChange={(event) => updateItem(index, "unit_price", Number(event.target.value))} /></label><button type="button" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="h-10 grid place-items-center text-red-500 hover:bg-red-50 rounded" aria-label="Eliminar ítem"><Trash2 size={16} /></button></div>)}</div>}<div className="mt-5 flex justify-end"><div className="bg-[#1a3558] text-white rounded-xl px-5 py-3 min-w-56 flex justify-between gap-6"><span>Total</span><strong className="font-semibold tabular-nums">{formatMoney(total)}</strong></div></div></section>
-    </fieldset><div className="sticky bottom-3 bg-card/95 backdrop-blur border border-border shadow-lg rounded-xl p-3 flex flex-wrap justify-end gap-2">{canAdminister && orderId && ["pending", "cancelled"].includes(status) && <button type="button" disabled={saving} onClick={() => void removeOrder()} className="mr-auto flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"><Trash2 size={15} />Eliminar orden</button>}{orderId && ["completed", "invoiced"].includes(status) && <button type="button" disabled={exporting} onClick={() => void exportReport()} className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-800 disabled:opacity-60">{exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}Reporte PDF</button>}<button type="button" onClick={onBack} className="px-4 py-2 rounded-lg border border-border">Cancelar</button>{!locked && <button disabled={saving} className="px-5 py-2 rounded-lg bg-[#f97316] text-white font-semibold flex items-center gap-2 disabled:opacity-60">{saving && <Loader2 size={16} className="animate-spin" />}Guardar orden</button>}</div></form>
+    </fieldset><div className="sticky bottom-3 bg-card/95 backdrop-blur border border-border shadow-lg rounded-xl p-3 flex flex-wrap justify-end gap-2">{canAdminister && orderId && ["pending", "cancelled"].includes(status) && <button type="button" disabled={saving} onClick={() => void removeOrder()} className="mr-auto flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 disabled:opacity-60"><Trash2 size={15} />Eliminar orden</button>}{orderId && status === "quoted" && <button type="button" disabled={exporting} onClick={() => void exportQuote()} className="flex items-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-2 text-sm font-semibold text-violet-800 disabled:opacity-60">{exporting ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}Cotización PDF</button>}{orderId && ["completed", "invoiced"].includes(status) && <button type="button" disabled={exporting} onClick={() => void exportReport()} className="flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-800 disabled:opacity-60">{exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}Reporte PDF</button>}<button type="button" onClick={onBack} className="px-4 py-2 rounded-lg border border-border">Cancelar</button>{!locked && <button disabled={saving} className="px-5 py-2 rounded-lg bg-[#f97316] text-white font-semibold flex items-center gap-2 disabled:opacity-60">{saving && <Loader2 size={16} className="animate-spin" />}Guardar orden</button>}</div></form>
     <div className="mt-5">{orderId ? <WorkOrderPhotos workOrderId={orderId} disabled={locked} /> : <section className="bg-card rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground"><Package className="mx-auto mb-2" />Guarda la orden primero para adjuntar fotografías.</section>}</div>
   </div>;
 }
