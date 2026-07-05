@@ -77,9 +77,29 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
-    setFile(event.target.files?.[0] ?? null);
+    const selectedFile = event.target.files?.[0] ?? null;
     setError("");
     setSuccess("");
+
+    if (!selectedFile) {
+      setFile(null);
+      return;
+    }
+    if (!selectedFile.type.match(/^image\/(jpeg|png|webp)$/)) {
+      setFile(null);
+      event.target.value = "";
+      setError("Esta foto no es compatible. Selecciona una imagen JPG, PNG o WEBP; las fotos HEIC/HEIF deben convertirse primero.");
+      return;
+    }
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setFile(null);
+      event.target.value = "";
+      setError("La imagen no puede superar 10 MB.");
+      return;
+    }
+
+    setFile(selectedFile);
+    setSuccess("Foto seleccionada. Presiona Subir para guardarla en la orden.");
   };
 
   const load = useCallback(async () => {
@@ -187,16 +207,16 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
         <fieldset className="min-w-0">
           <legend className="text-sm font-semibold">Foto</legend>
           <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <button type="button" onClick={() => cameraInputRef.current?.click()} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-[#f97316] bg-orange-50 px-3 text-sm font-semibold text-[#c2410c]">
+            <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#f97316] bg-orange-50 px-3 text-sm font-semibold text-[#c2410c]">
               <Camera size={16} />Tomar foto
-            </button>
-            <button type="button" onClick={() => galleryInputRef.current?.click()} className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-input-background px-3 text-sm font-semibold">
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
+            </label>
+            <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-input-background px-3 text-sm font-semibold">
               <Image size={16} />Galería
-            </button>
+              <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
+            </label>
           </div>
-          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onChange={selectFile} />
-          <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectFile} />
-          <p className="mt-1.5 truncate text-xs font-normal text-muted-foreground">{file?.name || "Ninguna foto seleccionada"}</p>
+          <p className={`mt-1.5 truncate text-xs font-normal ${file ? "font-semibold text-green-700" : "text-muted-foreground"}`}>{file ? `Lista: ${file.name}` : "Ninguna foto seleccionada"}</p>
         </fieldset>
         <label className="text-sm font-semibold">Descripción
           <input className={`${inputClass} mt-1.5`} value={caption} onChange={(event) => setCaption(event.target.value)} placeholder="Ej. Estado inicial del equipo" />
