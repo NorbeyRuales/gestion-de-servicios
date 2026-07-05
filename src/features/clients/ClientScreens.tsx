@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { z } from "zod";
 import {
-  AlertCircle, ArrowLeft, Building2, CheckCircle2, ChevronRight, Edit3,
+  AlertCircle, ArrowLeft, Building2, ChevronRight, Edit3,
   Loader2, Mail, MapPin, Phone, Plus, Search, Trash2, User,
 } from "lucide-react";
 import { StyledModal as Modal } from "../../app/components/ui/styled-modal";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 import { requestControlledDeletion } from "../../lib/adminDeletion";
 import { AssetManagement } from "../assets/AssetManagement";
@@ -112,10 +113,7 @@ function PageTitle({ title, subtitle, back, onBack, action }: { title: string; s
 }
 
 function Feedback({ error, success }: { error?: string; success?: string }) {
-  if (!error && !success) return null;
-  return <div role={error ? "alert" : undefined} className={`mb-4 flex items-start gap-2 rounded-lg border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>
-    {error ? <AlertCircle size={17} className="shrink-0" /> : <CheckCircle2 size={17} className="shrink-0" />}{error || success}
-  </div>;
+  return <ToastFeedback error={error} success={success} />;
 }
 
 function LoadingState() {

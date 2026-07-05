@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { AuthScreen } from "./auth/AuthScreen";
 import { Loader2 } from "lucide-react";
 import { DestructiveDialogHost } from "./app/components/ui/destructive-dialog";
+import { Toaster } from "./app/components/ui/sonner";
 
 function AppGate() {
   const { session, profile, loading, passwordRecovery, signOut } = useAuth();
@@ -21,5 +22,5 @@ function AppGate() {
 }
 
 export default function AuthenticatedApp() {
-  return <AuthProvider><AppGate /><DestructiveDialogHost /></AuthProvider>;
+  return <AuthProvider><AppGate /><DestructiveDialogHost /><Toaster position="top-right" richColors closeButton visibleToasts={4} gap={10} /></AuthProvider>;
 }

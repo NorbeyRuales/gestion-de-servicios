@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle, BarChart3, CalendarRange, CircleDollarSign, Download, FileSpreadsheet,
+  BarChart3, CalendarRange, CircleDollarSign, Download, FileSpreadsheet,
   FileText, Loader2, Receipt, Trash2, Wrench,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
@@ -8,6 +8,7 @@ import { QUERY_LIMITS } from "../../lib/queryLimits";
 import type { ReportExportData } from "./reportExports";
 import { InvoiceDeleteModal } from "./InvoiceDeleteModal";
 import { exportWorkReportPdf, type WorkReportRow } from "./workReportPdf";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 type InvoiceStatus = "pending" | "partial" | "paid" | "void";
 interface NamedRelation { name: string }
@@ -186,8 +187,7 @@ export function ReportsScreen({ canAdminister = false }: { canAdminister?: boole
 
     <section className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"><label className="text-xs font-semibold">Desde<input type="date" className={`${inputClass} mt-1 block`} value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label><label className="text-xs font-semibold">Hasta<input type="date" className={`${inputClass} mt-1 block`} value={to} min={from} max={today} onChange={(event) => setTo(event.target.value)} /></label><label className="min-w-56 flex-1 text-xs font-semibold">Cliente<select className={`${inputClass} mt-1 block w-full`} value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="">Todos los clientes</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><span className="flex items-center gap-1 pb-2 text-xs text-muted-foreground"><CalendarRange size={14} />Los indicadores cambian con estos filtros</span></section>
 
-    {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
-    {success && <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">{success}</div>}
+    <ToastFeedback error={error} success={success} />
     {loading ? <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div> : <>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4"><MetricCard label="Facturado" value={money(report.billed)} detail={`${report.invoiceRows.length} factura(s) emitida(s)`} icon={Receipt} tone="bg-blue-50 text-blue-700" /><MetricCard label="Recaudado" value={money(report.collected)} detail={`${report.paymentRows.length} pago(s) recibido(s)`} icon={CircleDollarSign} tone="bg-green-50 text-green-700" /><MetricCard label="Por cobrar" value={money(report.receivables)} detail="Saldo de facturas del período" icon={FileText} tone="bg-red-50 text-red-700" /><MetricCard label="Servicios" value={report.serviceRows.length} detail="Terminados o facturados" icon={Wrench} tone="bg-orange-50 text-orange-700" /></div>
 

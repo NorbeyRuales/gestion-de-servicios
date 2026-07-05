@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, ChevronRight, Cpu, Loader2, MapPin, Package, Search } from "lucide-react";
+import { ChevronRight, Cpu, Loader2, MapPin, Package, Search } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 
 type AssetStatus = "operational" | "needs_review" | "under_repair" | "out_of_service" | "retired";
@@ -76,7 +77,7 @@ export function AssetsGlobalScreen({ onOpenBranch }: { onOpenBranch: (branchId: 
 
   return <div>
     <div className="mb-5"><h1 className="text-xl font-bold sm:text-2xl">Equipos</h1><p className="mt-0.5 text-sm text-muted-foreground">Inventario global de equipos por cliente, sede y estado</p></div>
-    {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} />{error}</div>}
+    <ToastFeedback error={error} />
     <div className="mb-4 grid gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-[1fr_210px_210px_190px]"><div className="relative"><Search size={17} className="absolute left-3 top-3 text-muted-foreground" /><input className={`${inputClass} w-full pl-10`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar equipo, código o categoría…" /></div><select className={inputClass} value={clientId} onChange={(event) => { setClientId(event.target.value); setBranchId(""); }}><option value="">Todos los clientes</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select><select className={inputClass} value={branchId} onChange={(event) => setBranchId(event.target.value)}><option value="">Todas las sedes</option>{clientBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}</select><select className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">Todos los estados</option>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
     {loading ? <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-card p-14 text-center"><Package className="mx-auto text-muted-foreground" /><p className="mt-3 text-sm text-muted-foreground">No hay equipos que coincidan con los filtros.</p></div> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{filtered.map((asset) => {
       const branch = branches.find((item) => item.id === asset.branch_id);

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { AlertCircle, Camera, CheckCircle2, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import { Camera, Image, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { confirmDestructiveAction } from "../../app/components/ui/destructive-dialog";
 import { PhotoCaptionEditor } from "../../components/PhotoCaptionEditor";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 type PhotoType = "before" | "during" | "after" | "evidence";
 
@@ -58,11 +59,7 @@ function localDateTime(value: string) {
 }
 
 function Feedback({ error, success }: { error: string; success: string }) {
-  if (!error && !success) return null;
-  return <div role={error ? "alert" : undefined} className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>
-    {error ? <AlertCircle size={17} className="mt-0.5 shrink-0" /> : <CheckCircle2 size={17} className="mt-0.5 shrink-0" />}
-    <span>{error || success}</span>
-  </div>;
+  return <ToastFeedback error={error} success={success} />;
 }
 
 export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId: string; disabled?: boolean }) {

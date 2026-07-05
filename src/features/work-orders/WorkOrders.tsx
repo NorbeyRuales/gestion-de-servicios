@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, ClipboardList,
+  ArrowLeft, ChevronRight, ClipboardList,
   DollarSign, Download, FileDown, FileText, Loader2, Package, Plus, Search, Trash2, Wrench,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
@@ -9,6 +9,7 @@ import { QUERY_LIMITS } from "../../lib/queryLimits";
 import { WorkOrderPhotos } from "./WorkOrderPhotos";
 import { exportSingleWorkOrderPdf } from "../reports/workReportPdf";
 import { exportQuotePdf } from "./quotePdf";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 type WorkOrderStatus = "pending" | "quoted" | "approved" | "in_progress" | "completed" | "cancelled" | "invoiced";
 type ItemType = "material" | "spare_part" | "labor" | "transport" | "rental" | "other";
@@ -93,8 +94,7 @@ function PageTitle({ title, subtitle, onBack, action }: { title: string; subtitl
 }
 
 function Feedback({ error, success }: { error: string; success?: string }) {
-  if (!error && !success) return null;
-  return <div role={error ? "alert" : undefined} className={`mb-4 flex gap-2 rounded-lg border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>{error ? <AlertCircle size={17} /> : <CheckCircle2 size={17} />}{error || success}</div>;
+  return <ToastFeedback error={error} success={success} />;
 }
 
 export function WorkOrdersScreen({ canAdminister = false, onCreate, onEdit }: { canAdminister?: boolean; onCreate: () => void; onEdit: (id: string) => void }) {

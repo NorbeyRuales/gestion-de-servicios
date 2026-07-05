@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 interface DeletionLog {
   id: string;
@@ -38,7 +39,7 @@ export function DeletionLogs() {
   if (loading) return <div className="grid place-items-center py-20 text-muted-foreground"><Loader2 className="animate-spin" /></div>;
   return <div className="space-y-4">
     <div><h2 className="font-bold">Registro de eliminaciones</h2><p className="text-sm text-muted-foreground">Auditoría de eliminaciones definitivas realizadas por administradores.</p></div>
-    {error && <div role="alert" className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} />{error}</div>}
+    <ToastFeedback error={error} />
     {logs.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">No hay eliminaciones registradas.</div> : <section className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       {logs.map((log) => <article key={log.id} className="flex items-start gap-3 px-5 py-4">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-red-50 text-red-600"><Trash2 size={15} /></span>

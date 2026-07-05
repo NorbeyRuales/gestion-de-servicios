@@ -4,6 +4,7 @@ import {
   ChevronRight, ClipboardList, Clock3, FileText, Loader2, Plus, RefreshCw, Users,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 
 type DashboardTarget = "clients" | "orders" | "new-work-order" | "invoices";
@@ -148,7 +149,7 @@ export function DashboardScreen({ onNavigate }: { onNavigate: (target: Dashboard
       <div className="flex gap-2"><button onClick={() => void load()} disabled={loading} aria-label="Actualizar dashboard" className="grid h-10 w-10 place-items-center rounded-lg border border-border bg-card disabled:opacity-60"><RefreshCw size={17} className={loading ? "animate-spin" : ""} /></button><button onClick={() => onNavigate("new-work-order")} className="flex items-center gap-2 rounded-lg bg-[#f97316] px-4 py-2 text-sm font-semibold text-white"><Plus size={16} />Nueva orden</button></div>
     </div>
 
-    {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
+    <ToastFeedback error={error} />
     {loading && orders.length === 0 && invoices.length === 0 ? <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div> : <>
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiCard label="Pendientes" value={metrics.pending} detail="Por cotizar o iniciar" color="orange" icon={AlertCircle} onClick={() => onNavigate("orders")} />

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { z } from "zod";
-import { AlertCircle, Camera, CheckCircle2, Cpu, Edit3, History, Layers, Loader2, Package, Plus, Search, Trash2 } from "lucide-react";
+import { Camera, Cpu, Edit3, History, Layers, Loader2, Package, Plus, Search, Trash2 } from "lucide-react";
 import { StyledModal as Modal } from "../../app/components/ui/styled-modal";
 import { supabase } from "../../lib/supabase";
 import { requestControlledDeletion } from "../../lib/adminDeletion";
+import { ToastFeedback } from "../../components/ToastFeedback";
 import { TechnicalHistory } from "../work-orders/TechnicalHistory";
 import { AssetPhotos } from "./AssetPhotos";
 
@@ -110,8 +111,7 @@ function messageFrom(error: unknown) {
 }
 
 function Feedback({ error, success }: { error: string; success: string }) {
-  if (!error && !success) return null;
-  return <div role={error ? "alert" : undefined} className={`mb-4 flex gap-2 rounded-lg border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>{error ? <AlertCircle size={17} /> : <CheckCircle2 size={17} />}{error || success}</div>;
+  return <ToastFeedback error={error} success={success} />;
 }
 
 function AreaForm({ initial, saving, onCancel, onSave }: { initial?: AreaRecord; saving: boolean; onCancel: () => void; onSave: (value: AreaValue) => Promise<void> }) {

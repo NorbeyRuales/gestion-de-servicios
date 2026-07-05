@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertCircle, Ban, Calendar, CheckCircle2, CheckSquare, Clock, CreditCard, FileText, History, Loader2,
+  Ban, Calendar, CheckCircle2, CheckSquare, Clock, CreditCard, FileText, History, Loader2,
   MapPin, Paperclip, Pencil, Plus, ReceiptText, Search, Send, Square,
 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 import { QUERY_LIMITS } from "../../lib/queryLimits";
 import { InvoiceVoidForm } from "./InvoiceVoidForm";
 import { InvoiceDocuments, type InvoiceDocument } from "./InvoiceDocuments";
@@ -217,11 +218,7 @@ function totalsByManualItems(items: ManualInvoiceItem[]) {
 }
 
 function Feedback({ error, success }: { error: string; success: string }) {
-  if (!error && !success) return null;
-  return <div role={error ? "alert" : undefined} className={`mb-4 flex items-start gap-2 rounded-lg border p-3 text-sm ${error ? "border-red-200 bg-red-50 text-red-700" : "border-green-200 bg-green-50 text-green-700"}`}>
-    {error ? <AlertCircle size={17} className="mt-0.5 shrink-0" /> : <CheckCircle2 size={17} className="mt-0.5 shrink-0" />}
-    <span>{error || success}</span>
-  </div>;
+  return <ToastFeedback error={error} success={success} />;
 }
 
 function PageTitle({ title, subtitle, action }: { title: string; subtitle?: string; action?: React.ReactNode }) {

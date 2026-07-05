@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertCircle, Building2, ChevronRight, Loader2, MapPin, Phone, Search } from "lucide-react";
+import { Building2, ChevronRight, Loader2, MapPin, Phone, Search } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 interface ClientOption { id: string; name: string }
 interface BranchRecord {
@@ -66,7 +67,7 @@ export function LocationsScreen({ onOpen }: { onOpen: (branchId: string) => void
 
   return <div>
     <div className="mb-5"><h1 className="text-xl font-bold sm:text-2xl">Sedes</h1><p className="mt-0.5 text-sm text-muted-foreground">Consulta todas las sedes registradas por cliente</p></div>
-    {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} />{error}</div>}
+    <ToastFeedback error={error} />
     <div className="mb-4 grid gap-3 rounded-xl border border-border bg-card p-4 shadow-sm sm:grid-cols-[1fr_220px_160px]"><div className="relative"><Search size={17} className="absolute left-3 top-3 text-muted-foreground" /><input className={`${inputClass} w-full pl-10`} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar sede, dirección o encargado…" /></div><select className={inputClass} value={clientId} onChange={(event) => setClientId(event.target.value)}><option value="">Todos los clientes</option>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select><select className={inputClass} value={status} onChange={(event) => setStatus(event.target.value as typeof status)}><option value="all">Todos los estados</option><option value="active">Activas</option><option value="inactive">Inactivas</option></select></div>
     {loading ? <div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div> : filtered.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-card p-14 text-center text-sm text-muted-foreground">No hay sedes que coincidan con los filtros.</div> : <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{filtered.map((branch) => {
       const client = clients.find((item) => item.id === branch.client_id);

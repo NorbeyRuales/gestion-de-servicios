@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Edit3, KeyRound, Loader2, ShieldCheck, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
+import { Edit3, KeyRound, Loader2, ShieldCheck, Trash2, UserCheck, UserPlus, UserX } from "lucide-react";
 import { authRedirectUrl, supabase } from "../../lib/supabase";
 import { CreateUserForm } from "./CreateUserForm";
 import { deleteManagedUser } from "./userAdminApi";
 import { confirmDestructiveAction, requestDeletionReason } from "../../app/components/ui/destructive-dialog";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 type UserRole = "admin" | "technician" | "billing";
 interface UserProfile { id: string; full_name: string; email: string; role: UserRole; is_active: boolean; created_at: string }
@@ -82,8 +83,7 @@ export function UsersManagement({ currentUserId }: { currentUserId: string }) {
   };
 
   return <div className="space-y-5">
-    {error && <div role="alert" className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} />{error}</div>}
-    {success && <div className="flex gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700"><CheckCircle2 size={17} />{success}</div>}
+    <ToastFeedback error={error} success={success} />
     {creating && <CreateUserForm onCancel={() => setCreating(false)} onCreated={async () => { setCreating(false); setSuccess("Usuario creado correctamente."); await load(); }} />}
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm"><div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4"><div><h2 className="font-bold">Usuarios registrados</h2><p className="text-sm text-muted-foreground">Crea cuentas, asigna roles y controla su acceso.</p></div>{!creating && <button onClick={() => { setCreating(true); setError(""); setSuccess(""); }} className="flex items-center gap-2 rounded-lg bg-[#f97316] px-3 py-2 text-sm font-semibold text-white"><UserPlus size={15} />Nuevo usuario</button>}</div>{loading ? <div className="grid place-items-center py-16 text-muted-foreground"><Loader2 className="animate-spin" /></div> : <div className="divide-y divide-border">{users.map((user) => {
       const isCurrent = user.id === currentUserId;

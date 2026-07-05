@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, Building2, CheckCircle2, ImagePlus, Landmark, Loader2, Save } from "lucide-react";
+import { Building2, ImagePlus, Landmark, Loader2, Save } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { ToastFeedback } from "../../components/ToastFeedback";
 
 interface CompanySettings {
   id: number;
@@ -150,8 +151,7 @@ export function CompanySettingsScreen({ canEdit }: { canEdit: boolean }) {
     </div>
 
     {!canEdit && <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Solo un administrador puede modificar esta información.</div>}
-    {error && <div role="alert" className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><AlertCircle size={17} className="mt-0.5 shrink-0" />{error}</div>}
-    {success && <div className="mb-4 flex gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700"><CheckCircle2 size={17} className="mt-0.5 shrink-0" />{success}</div>}
+    <ToastFeedback error={error} success={success} />
 
     <form onSubmit={(event) => void save(event)} className="space-y-5">
       <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
