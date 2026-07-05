@@ -79,6 +79,8 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
   const selectFile = (event: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null;
     event.currentTarget.blur();
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    window.setTimeout(() => window.scrollTo({ top: 0, left: 0, behavior: "instant" }), 300);
     setError("");
     setSuccess("");
 
@@ -100,7 +102,6 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
     }
 
     setFile(selectedFile);
-    setSuccess("Foto seleccionada. Presiona Subir para guardarla en la orden.");
   };
 
   const load = useCallback(async () => {
@@ -210,11 +211,11 @@ export function WorkOrderPhotos({ workOrderId, disabled = false }: { workOrderId
           <div className="mt-1.5 grid grid-cols-2 gap-2">
             <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#f97316] bg-orange-50 px-3 text-sm font-semibold text-[#c2410c]">
               <Camera size={16} />Tomar foto
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="sr-only" onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" tabIndex={-1} onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
             </label>
             <label className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-input-background px-3 text-sm font-semibold">
               <Image size={16} />Galería
-              <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
+              <input ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" tabIndex={-1} onClick={(event) => { event.currentTarget.value = ""; }} onChange={selectFile} />
             </label>
           </div>
           <p className={`mt-1.5 truncate text-xs font-normal ${file ? "font-semibold text-green-700" : "text-muted-foreground"}`}>{file ? `Lista: ${file.name}` : "Ninguna foto seleccionada"}</p>
