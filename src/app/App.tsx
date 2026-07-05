@@ -123,7 +123,7 @@ function Sidebar({ active, profile, open, onNavigate, onClose }: {
 }
 
 function BottomNavigation({ active, onNavigate }: { active: NavigationId; onNavigate: (screen: Screen) => void }) {
-  return <nav aria-label="Navegación móvil" className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-white/10 bg-[#1a3558] lg:hidden">
+  return <nav aria-label="Navegación móvil" className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-white/10 bg-[#1a3558] pb-[env(safe-area-inset-bottom)] lg:hidden">
     {mobileNavigation.map(({ id, screen, label, icon: Icon }) => <button type="button" key={id} onClick={() => onNavigate(screen)} className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors ${active === id ? "text-[#f97316]" : "text-blue-200/50"}`}><Icon size={20} />{label}</button>)}
   </nav>;
 }
@@ -206,7 +206,7 @@ export default function App({ profile, onSignOut }: { profile: Profile; onSignOu
 
   const active = activeNavigation(screen);
 
-  return <div className="flex h-screen overflow-hidden bg-background">
+  return <div className="flex h-[100dvh] overflow-hidden bg-background">
     <Sidebar active={active} profile={profile} open={sidebarOpen} onNavigate={navigateRoot} onClose={() => setSidebarOpen(false)} />
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-4 py-3">
@@ -219,7 +219,7 @@ export default function App({ profile, onSignOut }: { profile: Profile; onSignOu
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 pb-20 sm:px-6 lg:px-8 lg:pb-8">
+      <main className="flex-1 overflow-y-auto px-4 py-5 pb-[calc(3.5rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8 lg:pb-8">
         <Suspense fallback={<div className="grid place-items-center py-24 text-muted-foreground"><Loader2 className="animate-spin" /></div>}>
         {screen === "dashboard" && <DashboardScreen onNavigate={(next) => {
           if (next === "new-work-order") { setSelectedClient(""); setSelectedLocation(""); setSelectedAsset(""); setSelectedWorkOrder(""); }
